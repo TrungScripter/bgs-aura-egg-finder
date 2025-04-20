@@ -44,14 +44,17 @@ local function hopServer()
 
     if success and data and data.data then
         for _, server in ipairs(data.data) do
-            -- Check for servers with available spots
+            -- Check if server is not the same as current one, and has available space
             if server.playing < server.maxPlayers and server.id ~= JobID then
-                -- Teleport to the new server
+                -- Attempt to teleport
+                print("Teleporting to server with ID: " .. server.id)
                 TeleportService:TeleportToPlaceInstance(PlaceID, server.id, game.Players.LocalPlayer)
-                return
+                return true  -- Successful hop
             end
         end
     end
+
+    return false  -- If no valid server found, return false
 end
 
 -- Main loop to keep checking for the Aura Egg and hop if needed
@@ -86,7 +89,15 @@ while true do
         -- If still no Aura Egg found, hop to a new server
         label.Text = "❌ No Aura Egg found. Hopping in " .. waitBeforeHop .. " seconds..."
         wait(waitBeforeHop)
-        hopServer()  -- Hop to a new server
+        
+        local hopped = hopServer()  -- Attempt to hop to a new server
+        
+        -- If the teleportation didn't succeed, try again
+        if not hopped then
+            label.Text = "❌ Server hopping failed. Trying again..."
+            wait(5)
+        end
+
         wait(10) -- Wait for server to load before checking again
     end
 end
