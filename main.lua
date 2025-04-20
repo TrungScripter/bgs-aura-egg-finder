@@ -86,12 +86,23 @@ while true do
         -- If no Aura Egg found, show waiting text
         label.Text = "❌ Aura Egg not found. Hopping to a new server..."
         
-        -- Hop to a new server immediately
-        local hopped = hopServer()  -- Attempt to hop to a new server
+        -- Attempt to hop to a new server immediately
+        local successHop = false
+        local attemptCount = 0
+        while not successHop and attemptCount < 5 do  -- Try up to 5 times
+            successHop = hopServer()  -- Attempt to hop to a new server
+            attemptCount = attemptCount + 1
+            
+            if not successHop then
+                label.Text = "❌ Server hopping failed. Trying again..."
+                wait(1)  -- Small wait before trying again
+            end
+        end
         
-        -- If the teleportation didn't succeed, try again
-        if not hopped then
-            label.Text = "❌ Server hopping failed. Trying again..."
+        -- If we still failed after multiple attempts
+        if not successHop then
+            label.Text = "❌ Failed to hop after multiple attempts. Retrying soon..."
+            wait(2)  -- Wait before trying again
         else
             -- If hop was successful, show that it's waiting
             label.Text = "✅ Hopped successfully. Searching for Aura Egg..."
