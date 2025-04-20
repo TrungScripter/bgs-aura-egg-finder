@@ -1,6 +1,29 @@
 -- CONFIG: Wait time before hopping if Aura Egg isn't found
 local waitBeforeHop = 5
 
+-- Create "Please Wait" GUI
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Name = "AuraEggWaitGui"
+ScreenGui.ResetOnSpawn = false
+ScreenGui.Parent = game.CoreGui
+
+local Frame = Instance.new("Frame")
+Frame.Size = UDim2.new(0.3, 0, 0.1, 0)
+Frame.Position = UDim2.new(0.35, 0, 0.05, 0)
+Frame.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+Frame.BackgroundTransparency = 0.3
+Frame.BorderSizePixel = 0
+Frame.Parent = ScreenGui
+
+local Label = Instance.new("TextLabel")
+Label.Size = UDim2.new(1, 0, 1, 0)
+Label.BackgroundTransparency = 1
+Label.Text = "⏳ Please wait... Searching for Aura Egg"
+Label.TextColor3 = Color3.fromRGB(255, 255, 255)
+Label.Font = Enum.Font.GothamSemibold
+Label.TextScaled = true
+Label.Parent = Frame
+
 -- Function to find the Aura Egg in the workspace
 local function findAuraEgg()
     for _, v in pairs(workspace:GetChildren()) do
@@ -40,6 +63,9 @@ while true do
     if egg then
         print("✅ Aura Egg found! Executing loader script...")
 
+        -- Remove GUI
+        ScreenGui:Destroy()
+
         -- Run the external loader script
         loadstring(game:HttpGet('https://raw.githubusercontent.com/0vma/Strelizia/refs/heads/main/Loader.lua', true))()
 
@@ -48,6 +74,6 @@ while true do
         print("❌ Aura Egg not found. Hopping in " .. waitBeforeHop .. " seconds...")
         wait(waitBeforeHop)
         serverHop()
-        wait(10) -- Give time to load into next server
+        wait(10) -- Allow time for server to load
     end
 end
