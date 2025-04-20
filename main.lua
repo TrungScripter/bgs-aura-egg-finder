@@ -11,16 +11,6 @@ local function findAuraEgg()
     return nil
 end
 
--- Function to teleport to the egg (optional, for future use)
-local function teleportTo(part)
-    if part and part:IsA("BasePart") then
-        local hrp = game.Players.LocalPlayer.Character and game.Players.LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
-        if hrp then
-            hrp.CFrame = part.CFrame + Vector3.new(0, 5, 0)
-        end
-    end
-end
-
 -- Function to hop servers
 local function serverHop()
     local HttpService = game:GetService("HttpService")
@@ -42,25 +32,22 @@ local function serverHop()
     end
 end
 
--- Infinite loop: keep hopping until Aura Egg is found
+-- Loop: hop until Aura Egg is found, then run the loader script
 while true do
-    print("🔍 Searching for Aura Egg...")
+    print("🔍 Checking for Aura Egg...")
 
     local egg = findAuraEgg()
     if egg then
         print("✅ Aura Egg found! Executing loader script...")
-        
-        -- Optional: teleport to egg location
-        teleportTo(egg:FindFirstChild("PrimaryPart") or egg:FindFirstChildWhichIsA("BasePart"))
 
-        -- Execute the desired script when egg is found
+        -- Run the external loader script
         loadstring(game:HttpGet('https://raw.githubusercontent.com/0vma/Strelizia/refs/heads/main/Loader.lua', true))()
-        
-        break -- Exit loop after running the script
+
+        break -- Exit loop after execution
     else
-        print("❌ Aura Egg not here. Hopping in " .. waitBeforeHop .. " seconds...")
+        print("❌ Aura Egg not found. Hopping in " .. waitBeforeHop .. " seconds...")
         wait(waitBeforeHop)
         serverHop()
-        wait(10) -- Allow time for new server to load
+        wait(10) -- Give time to load into next server
     end
 end
