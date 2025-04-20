@@ -1,4 +1,4 @@
--- CONFIG: No wait between hops if Aura Egg isn't found
+-- CONFIG: No wait before hopping if Aura Egg isn't found
 local waitBeforeHop = 0  -- No wait before hopping
 local doubleCheckDelay = 0  -- No double check delay
 
@@ -30,7 +30,7 @@ local function findAuraEgg()
     return nil
 end
 
--- Function to hop servers
+-- Function to hop servers (Original method)
 local function hopServer()
     local HttpService = game:GetService("HttpService")
     local TeleportService = game:GetService("TeleportService")
