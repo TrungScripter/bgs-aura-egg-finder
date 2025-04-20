@@ -1,6 +1,6 @@
--- CONFIG: Wait time before hopping if Aura Egg isn't found
-local waitBeforeHop = 5
-local doubleCheckDelay = 3  -- Time between double-checking for the egg
+-- CONFIG: No wait between hops if Aura Egg isn't found
+local waitBeforeHop = 0  -- No wait before hopping
+local doubleCheckDelay = 0  -- No double check delay
 
 -- GUI (for user feedback)
 local gui = Instance.new("ScreenGui", game.CoreGui)
@@ -74,30 +74,16 @@ while true do
         break -- Stop the loop after running the loader
     else
         -- If no Aura Egg found, show waiting text
-        label.Text = "❌ Aura Egg not found. Double checking and hopping in " .. waitBeforeHop .. " seconds..."
-        wait(doubleCheckDelay) -- Double check before hopping
-        egg = findAuraEgg()  -- Second check
-
-        if egg then
-            label.Text = "✅ Aura Egg found on second check! Running script..."
-            wait(1)
-            gui:Destroy()
-            loadstring(game:HttpGet('https://raw.githubusercontent.com/0vma/Strelizia/refs/heads/main/Loader.lua', true))()
-            break
-        end
-
-        -- If still no Aura Egg found, hop to a new server
-        label.Text = "❌ No Aura Egg found. Hopping in " .. waitBeforeHop .. " seconds..."
-        wait(waitBeforeHop)
+        label.Text = "❌ Aura Egg not found. Hopping to a new server..."
         
+        -- Hop to a new server immediately
         local hopped = hopServer()  -- Attempt to hop to a new server
         
         -- If the teleportation didn't succeed, try again
         if not hopped then
             label.Text = "❌ Server hopping failed. Trying again..."
-            wait(5)
         end
-
-        wait(10) -- Wait for server to load before checking again
     end
+
+    wait(1)  -- Small delay to avoid infinite loop spamming
 end
