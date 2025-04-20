@@ -48,8 +48,18 @@ local function hopServer()
             if server.playing < server.maxPlayers and server.id ~= JobID then
                 -- Attempt to teleport
                 print("Teleporting to server with ID: " .. server.id)
-                TeleportService:TeleportToPlaceInstance(PlaceID, server.id, game.Players.LocalPlayer)
-                return true  -- Successful hop
+                local successTeleport, errorMsg = pcall(function()
+                    TeleportService:TeleportToPlaceInstance(PlaceID, server.id, game.Players.LocalPlayer)
+                end)
+                
+                -- Check if teleportation was successful
+                if successTeleport then
+                    print("Successfully hopped to server!")
+                    return true  -- Successful hop
+                else
+                    print("Teleportation failed: " .. errorMsg)
+                    return false  -- Failed hop
+                end
             end
         end
     end
@@ -82,6 +92,9 @@ while true do
         -- If the teleportation didn't succeed, try again
         if not hopped then
             label.Text = "❌ Server hopping failed. Trying again..."
+        else
+            -- If hop was successful, show that it's waiting
+            label.Text = "✅ Hopped successfully. Searching for Aura Egg..."
         end
     end
 
