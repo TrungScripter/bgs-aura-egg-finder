@@ -1,113 +1,78 @@
--- CONFIG: No wait before hopping if Aura Egg isn't found
-local waitBeforeHop = 0  -- No wait before hopping
-local doubleCheckDelay = 0  -- No double check delay
+-- SETTINGS
+local auraEggName = "AuraEgg"
+local retryDelay = 1 -- seconds between hops if failed
+local guiEnabled = true
 
--- GUI (for user feedback)
-local gui = Instance.new("ScreenGui", game.CoreGui)
-gui.Name = "AuraEggStatus"
+-- GUI Setup
+local gui, label
+if guiEnabled then
+    gui = Instance.new("ScreenGui", game.CoreGui)
+    gui.Name = "AuraEggHopGUI"
 
-local frame = Instance.new("Frame", gui)
-frame.Size = UDim2.new(0.3, 0, 0.1, 0)
-frame.Position = UDim2.new(0.35, 0, 0.05, 0)
-frame.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
-frame.BackgroundTransparency = 0.3
+    local frame = Instance.new("Frame", gui)
+    frame.Size = UDim2.new(0.3, 0, 0.1, 0)
+    frame.Position = UDim2.new(0.35, 0, 0.05, 0)
+    frame.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+    frame.BackgroundTransparency = 0.3
 
-local label = Instance.new("TextLabel", frame)
-label.Size = UDim2.new(1, 0, 1, 0)
-label.BackgroundTransparency = 1
-label.Text = "⏳ Searching for Aura Egg..."
-label.TextColor3 = Color3.fromRGB(255, 255, 255)
-label.Font = Enum.Font.GothamBold
-label.TextScaled = true
+    label = Instance.new("TextLabel", frame)
+    label.Size = UDim2.new(1, 0, 1, 0)
+    label.BackgroundTransparency = 1
+    label.TextColor3 = Color3.fromRGB(255, 255, 255)
+    label.Font = Enum.Font.GothamBold
+    label.TextScaled = true
+    label.Text = "🔍 Searching for Aura Egg..."
+end
 
--- Function to find the Aura Egg in the workspace
+-- Aura Egg Check
 local function findAuraEgg()
     for _, v in pairs(workspace:GetChildren()) do
-        if v:IsA("Model") and string.lower(v.Name):find("auraegg") then
+        if v:IsA("Model") and string.lower(v.Name):find(string.lower(auraEggName)) then
             return v
         end
     end
     return nil
 end
 
--- Function to hop servers (Original method)
+-- Server Hop Function
 local function hopServer()
     local HttpService = game:GetService("HttpService")
     local TeleportService = game:GetService("TeleportService")
     local PlaceID = game.PlaceId
-    local JobID = game.JobId
+    local currentJobId = game.JobId
+    local servers = {}
+    local cursor = ""
 
-    -- Get the available public servers
-    local success, data = pcall(function()
-        return HttpService:JSONDecode(game:HttpGet("https://games.roblox.com/v1/games/" .. PlaceID .. "/servers/Public?sortOrder=2&limit=10"))
-    end)
-
-    if success and data and data.data then
-        for _, server in ipairs(data.data) do
-            -- Check if server is not the same as current one, and has available space
-            if server.playing < server.maxPlayers and server.id ~= JobID then
-                -- Attempt to teleport
-                print("Teleporting to server with ID: " .. server.id)
-                local successTeleport, errorMsg = pcall(function()
-                    TeleportService:TeleportToPlaceInstance(PlaceID, server.id, game.Players.LocalPlayer)
-                end)
-                
-                -- Check if teleportation was successful
-                if successTeleport then
-                    print("Successfully hopped to server!")
-                    return true  -- Successful hop
-                else
-                    print("Teleportation failed: " .. errorMsg)
-                    return false  -- Failed hop
-                end
+    repeat
+        local url = "https://games.roblox.com/v1/games/" .. PlaceID .. "/servers/Public?sortOrder=2&limit=100" .. (cursor ~= "" and "&cursor=" .. cursor or "")
+        local response = HttpService:JSONDecode(game:HttpGet(url))
+        for _, server in pairs(response.data) do
+            if server.playing < server.maxPlayers and server.id ~= currentJobId then
+                table.insert(servers, server.id)
             end
         end
-    end
+        cursor = response.nextPageCursor
+    until not cursor or #servers > 0
 
-    return false  -- If no valid server found, return false
+    if #servers > 0 then
+        local chosen = servers[math.random(1, #servers)]
+        TeleportService:TeleportToPlaceInstance(PlaceID, chosen, game.Players.LocalPlayer)
+    end
 end
 
--- Main loop to keep checking for the Aura Egg and hop if needed
+-- Main Loop
 while true do
-    -- First check for the Aura Egg
-    local egg = findAuraEgg()
-
-    if egg then
-        -- If the Aura Egg is found, update GUI and run the loader script
-        label.Text = "✅ Aura Egg found! Running script..."
-        wait(1)
-        gui:Destroy()
-
-        -- Run the external loader script
-        loadstring(game:HttpGet('https://raw.githubusercontent.com/0vma/Strelizia/refs/heads/main/Loader.lua', true))()
-
-        break -- Stop the loop after running the loader
+    local found = findAuraEgg()
+    if found then
+        if label then label.Text = "✅ Aura Egg Found! Stopping hops..." end
+        break
     else
-        -- If no Aura Egg found, show waiting text
-        label.Text = "❌ Aura Egg not found. Hopping to a new server..."
-        
-        -- Attempt to hop to a new server immediately
-        local successHop = false
-        local attemptCount = 0
-        while not successHop and attemptCount < 5 do  -- Try up to 5 times
-            successHop = hopServer()  -- Attempt to hop to a new server
-            attemptCount = attemptCount + 1
-            
-            if not successHop then
-                label.Text = "❌ Server hopping failed. Trying again..."
-                wait(1)  -- Small wait before trying again
-            end
-        end
-        
-        -- If we still failed after multiple attempts
-        if not successHop then
-            label.Text = "❌ Failed to hop after multiple attempts. Retrying soon..."
-            wait(2)  -- Wait before trying again
-        else
-            -- If hop was successful, show that it's waiting
-            label.Text = "✅ Hopped successfully. Searching for Aura Egg..."
+        if label then label.Text = "❌ Aura Egg not found. Hopping..." end
+        local success = pcall(hopServer)
+        if not success and label then
+            label.Text = "⚠️ Hop failed. Retrying..."
+            wait(retryDelay)
         end
     end
-
-    wait(1)  -- Small delay to avoid infinite loop spamming
+    wait(1)
 end
