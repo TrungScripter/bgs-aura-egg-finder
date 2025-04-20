@@ -1,7 +1,8 @@
--- CONFIG
+-- CONFIG: Wait time before hopping if Aura Egg isn't found
 local waitBeforeHop = 5
+local doubleCheckDelay = 3  -- Time between double-checking for the egg
 
--- GUI
+-- GUI (for user feedback)
 local gui = Instance.new("ScreenGui", game.CoreGui)
 gui.Name = "AuraEggStatus"
 
@@ -19,7 +20,7 @@ label.TextColor3 = Color3.fromRGB(255, 255, 255)
 label.Font = Enum.Font.GothamBold
 label.TextScaled = true
 
--- Egg Finder
+-- Function to find the Aura Egg in the workspace
 local function findAuraEgg()
     for _, v in pairs(workspace:GetChildren()) do
         if v:IsA("Model") and string.lower(v.Name):find("auraegg") then
@@ -29,20 +30,23 @@ local function findAuraEgg()
     return nil
 end
 
--- Server Hopper
+-- Function to hop servers
 local function hopServer()
     local HttpService = game:GetService("HttpService")
     local TeleportService = game:GetService("TeleportService")
     local PlaceID = game.PlaceId
     local JobID = game.JobId
 
+    -- Get the available public servers
     local success, data = pcall(function()
-        return HttpService:JSONDecode(game:HttpGet("https://games.roblox.com/v1/games/" .. PlaceID .. "/servers/Public?sortOrder=2&limit=100"))
+        return HttpService:JSONDecode(game:HttpGet("https://games.roblox.com/v1/games/" .. PlaceID .. "/servers/Public?sortOrder=2&limit=10"))
     end)
 
     if success and data and data.data then
         for _, server in ipairs(data.data) do
+            -- Check for servers with available spots
             if server.playing < server.maxPlayers and server.id ~= JobID then
+                -- Teleport to the new server
                 TeleportService:TeleportToPlaceInstance(PlaceID, server.id, game.Players.LocalPlayer)
                 return
             end
@@ -50,22 +54,39 @@ local function hopServer()
     end
 end
 
--- Main Loop
+-- Main loop to keep checking for the Aura Egg and hop if needed
 while true do
+    -- First check for the Aura Egg
     local egg = findAuraEgg()
 
     if egg then
+        -- If the Aura Egg is found, update GUI and run the loader script
         label.Text = "✅ Aura Egg found! Running script..."
         wait(1)
         gui:Destroy()
 
-        -- Run loader
+        -- Run the external loader script
         loadstring(game:HttpGet('https://raw.githubusercontent.com/0vma/Strelizia/refs/heads/main/Loader.lua', true))()
-        break
+
+        break -- Stop the loop after running the loader
     else
-        label.Text = "❌ Aura Egg not found. Hopping soon..."
+        -- If no Aura Egg found, show waiting text
+        label.Text = "❌ Aura Egg not found. Double checking and hopping in " .. waitBeforeHop .. " seconds..."
+        wait(doubleCheckDelay) -- Double check before hopping
+        egg = findAuraEgg()  -- Second check
+
+        if egg then
+            label.Text = "✅ Aura Egg found on second check! Running script..."
+            wait(1)
+            gui:Destroy()
+            loadstring(game:HttpGet('https://raw.githubusercontent.com/0vma/Strelizia/refs/heads/main/Loader.lua', true))()
+            break
+        end
+
+        -- If still no Aura Egg found, hop to a new server
+        label.Text = "❌ No Aura Egg found. Hopping in " .. waitBeforeHop .. " seconds..."
         wait(waitBeforeHop)
-        hopServer()
-        wait(10) -- Give time to load
+        hopServer()  -- Hop to a new server
+        wait(10) -- Wait for server to load before checking again
     end
 end
